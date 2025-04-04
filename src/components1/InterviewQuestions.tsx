@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { API_ENDPOINTS } from '@/config/api';
 
 interface InterviewQuestionsProps {
   resumeFile: File | null;
@@ -17,7 +18,7 @@ interface InterviewQuestionsProps {
   analysis: any;
 }
 
-const InterviewQuestions: React.FC<InterviewQuestionsProps> = ({ resumeFile, resumeText, analysis }) => {
+export const InterviewQuestions: React.FC<InterviewQuestionsProps> = ({ resumeFile, resumeText, analysis }) => {
   const [difficulty, setDifficulty] = useState('medium');
   const [numQuestions, setNumQuestions] = useState(5);
   const [questionTypes, setQuestionTypes] = useState<string[]>(['technical', 'behavioral']);
@@ -41,19 +42,24 @@ const InterviewQuestions: React.FC<InterviewQuestionsProps> = ({ resumeFile, res
       formData.append('num_questions', numQuestions.toString());
       formData.append('question_types', JSON.stringify(questionTypes));
 
-      const response = await fetch('http://127.0.0.1:8002/api/questions', {
+      const response = await fetch(API_ENDPOINTS.questions, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate questions');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate questions');
       }
 
       const data = await response.json();
       setQuestions(data.questions);
     } catch (err) {
-      setError('Failed to generate questions. Please try again.');
+      console.error('Questions generation error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate questions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -165,6 +171,4 @@ const InterviewQuestions: React.FC<InterviewQuestionsProps> = ({ resumeFile, res
       </Card>
     </div>
   );
-};
-
-export default InterviewQuestions; 
+}; 

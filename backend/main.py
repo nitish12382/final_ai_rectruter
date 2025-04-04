@@ -27,7 +27,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -380,17 +380,23 @@ async def health_check():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/qa")
-async def ask_question(
-    resume: UploadFile = File(...),
+async def resume_qa(
+    resume_file: Optional[UploadFile] = File(None),
+    resume_text: Optional[str] = Form(None),
     question: str = Form(...)
 ):
     try:
-        # Extract text from PDF
-        resume_text = extract_text_from_pdf(resume)
+        # Get resume text either from file or directly from the request
+        if resume_file:
+            text = extract_text_from_pdf(resume_file)
+        elif resume_text:
+            text = resume_text
+        else:
+            return {"error": "Please provide either a resume file or resume text"}
         
         prompt = f"""
         Based on this resume:
-        {resume_text}
+        {text}
 
         Answer this question:
         {question}
@@ -420,6 +426,7 @@ async def ask_question(
 
         return {"answer": formatted_points}
     except Exception as e:
+        logger.error(f"Error in resume_qa: {str(e)}")
         return {"error": str(e)}
 
 @app.post("/api/questions")
@@ -647,4 +654,4 @@ async def get_improved_resume(
         }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001) 
+    uvicorn.run(app, host="0.0.0.0", port=8001)

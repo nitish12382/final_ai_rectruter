@@ -66,7 +66,7 @@ const Login = () => {
 
   const handleGetStarted = (role: 'hr' | 'employee') => {
     if (role === 'hr') {
-      navigate('/resumeAnalyzer');
+      navigate('/hr-resume-analysis');
     } else {
       navigate('/employee-resume-analysis');
     }

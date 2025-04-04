@@ -62,5 +62,52 @@ def test_resume_analysis():
         print("\nFull analysis results:")
         print(response.json())
 
+def test_resume_improvement():
+    # Test data
+    test_files = [
+        'test_resumes/resume1.pdf',
+        'test_resumes/resume2.pdf'
+    ]
+
+    if all(os.path.exists(f) for f in test_files):
+        # Test case 1: Valid target role
+        files = [('resume', open(test_files[0], 'rb'))]
+        data = {
+            'target_role': 'Full Stack Developer'
+        }
+        response = requests.post('http://localhost:8001/api/improve', files=files, data=data)
+        print("\nTest Case 1 - Valid target role:")
+        print(response.json())
+
+        # Test case 2: Invalid target role
+        data = {
+            'target_role': 'Invalid Role'
+        }
+        response = requests.post('http://localhost:8001/api/improve', files=files, data=data)
+        print("\nTest Case 2 - Invalid target role:")
+        print(response.json())
+
+        # Test case 3: Custom areas for improvement
+        data = {
+            'custom_areas': 'Technical Skills\nProject Experience\nCommunication'
+        }
+        response = requests.post('http://localhost:8001/api/improve', files=files, data=data)
+        print("\nTest Case 3 - Custom areas:")
+        print(response.json())
+
+        # Test case 4: Missing resume
+        data = {
+            'target_role': 'Full Stack Developer'
+        }
+        response = requests.post('http://localhost:8001/api/improve', data=data)
+        print("\nTest Case 4 - Missing resume:")
+        print(response.json())
+
+        # Test case 5: Missing both target role and custom areas
+        response = requests.post('http://localhost:8001/api/improve', files=files)
+        print("\nTest Case 5 - Missing both target role and custom areas:")
+        print(response.json())
+
 if __name__ == '__main__':
-    test_resume_analysis() 
+    test_resume_analysis()
+    test_resume_improvement() 

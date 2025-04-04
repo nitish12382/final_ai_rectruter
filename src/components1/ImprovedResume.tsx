@@ -10,6 +10,7 @@ import Spinner from "@/components/ui/spinner";
 import { Divider } from "@/components/ui/divider";
 import { Badge } from "@/components/ui/badge";
 import { FaFileAlt } from 'react-icons/fa';
+import { API_ENDPOINTS } from '@/config/api';
 
 interface ImprovedResumeProps {
   resumeFile: File | null;
@@ -188,13 +189,17 @@ export default function ImprovedResume({ resumeFile }: ImprovedResumeProps) {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8002/api/improved-resume', {
+      const response = await fetch(API_ENDPOINTS.improvedResume, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate improved resume');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate improved resume');
       }
 
       const data = await response.json();
@@ -205,6 +210,7 @@ export default function ImprovedResume({ resumeFile }: ImprovedResumeProps) {
         description: 'Improved resume generated successfully.',
       });
     } catch (error) {
+      console.error('Resume improvement error:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to generate improved resume.',

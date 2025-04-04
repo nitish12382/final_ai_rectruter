@@ -18,7 +18,16 @@ from email.mime.application import MIMEApplication
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Accept", "Authorization", "Access-Control-Allow-Origin"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+        "max_age": 3600
+    }
+})
 app.secret_key = "7743cafca8fe3397f2ae774d70e436c2"
 
 # Initialize Groq client
@@ -523,6 +532,70 @@ def send_emails():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/qa', methods=['POST'])
+def qa():
+    try:
+        data = request.get_json()
+        if not data or 'question' not in data or 'resume_text' not in data:
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        question = data['question']
+        resume_text = data['resume_text']
+
+        # Initialize Groq client
+        client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+
+        # Create a more focused prompt
+        prompt = f"""You are a resume analysis expert. Based on the following resume text, please answer the question.
+        If the information is not available in the resume, say "Information not available in the resume."
+        Keep your response concise and focused on the specific question asked.
+
+        Resume Text:
+        {resume_text}
+
+        Question: {question}
+
+        Instructions:
+        1. Only answer based on information present in the resume
+        2. Be specific and direct in your response
+        3. If the information is not in the resume, say so clearly
+        4. Do not make assumptions or generalizations
+        5. Focus only on answering the specific question asked
+
+        Answer:"""
+
+        # Generate response using Groq
+        completion = client.chat.completions.create(
+            model="gemma2-9b-it",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a resume analysis expert. Provide clear, concise, and accurate answers based only on the information present in the resume."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.3,  # Lower temperature for more focused responses
+            max_tokens=500    # Limit response length
+        )
+
+        answer = completion.choices[0].message.content.strip()
+
+        # Clean up the response
+        if answer.lower().startswith('answer:'):
+            answer = answer[7:].strip()
+        
+        return jsonify({
+            'success': True,
+            'answer': answer
+        })
+
+    except Exception as e:
+        print(f"Error in qa endpoint: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000) 

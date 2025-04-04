@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ResumeAnalysis } from './ResumeAnalysis';
-import ResumeQA from './ResumeQA';
-import InterviewQuestions from './InterviewQuestions';
+import { ResumeQA } from './ResumeQA';
+import { InterviewQuestions } from './InterviewQuestions';
 import { useNavigate } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 
@@ -21,54 +21,30 @@ interface AnalysisResult {
 interface ResumeData {
   file: File | null;
   text: string;
-  analysis: AnalysisResult | null;
+  analysis: any;
 }
 
 export const ResumeAnalysisContainer: React.FC = () => {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('analysis');
+  const [activeTab, setActiveTab] = useState('analysis');
   const [resumeData, setResumeData] = useState<ResumeData>({
     file: null,
     text: '',
     analysis: null
   });
 
-  const handleResumeUpload = (file: File) => {
-    setResumeData(prev => ({ ...prev, file }));
+  const handleResumeUpload = (file: File, text: string) => {
+    console.log('ResumeAnalysisContainer received file and text:', {
+      fileName: file.name,
+      textLength: text.length,
+      textPreview: text.substring(0, 100)
+    });
+    setResumeData(prev => ({ ...prev, file, text }));
   };
 
-  const handleAnalysisComplete = (analysis: AnalysisResult) => {
+  const handleAnalysisComplete = (analysis: any) => {
+    console.log('Analysis completed:', analysis);
     setResumeData(prev => ({ ...prev, analysis }));
-  };
-
-  const renderSection = () => {
-    switch (activeSection) {
-      case 'analysis':
-        return (
-          <ResumeAnalysis
-            onResumeUpload={handleResumeUpload}
-            onAnalysisComplete={handleAnalysisComplete}
-          />
-        );
-      case 'qa':
-        return (
-          <ResumeQA
-            resumeFile={resumeData.file}
-            resumeText={resumeData.text}
-            analysis={resumeData.analysis}
-          />
-        );
-      case 'questions':
-        return (
-          <InterviewQuestions
-            resumeFile={resumeData.file}
-            resumeText={resumeData.text}
-            analysis={resumeData.analysis}
-          />
-        );
-      default:
-        return null;
-    }
   };
 
   return (
@@ -119,18 +95,20 @@ export const ResumeAnalysisContainer: React.FC = () => {
           </div>
 
           <div className="w-2/3">
-            <Tabs defaultValue="analysis" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="analysis">Resume Analysis</TabsTrigger>
                 <TabsTrigger value="qa">Resume Q&A</TabsTrigger>
                 <TabsTrigger value="questions">Interview Questions</TabsTrigger>
               </TabsList>
+
               <TabsContent value="analysis">
                 <ResumeAnalysis
                   onResumeUpload={handleResumeUpload}
                   onAnalysisComplete={handleAnalysisComplete}
                 />
               </TabsContent>
+
               <TabsContent value="qa">
                 <ResumeQA
                   resumeFile={resumeData.file}
@@ -138,6 +116,7 @@ export const ResumeAnalysisContainer: React.FC = () => {
                   analysis={resumeData.analysis}
                 />
               </TabsContent>
+
               <TabsContent value="questions">
                 <InterviewQuestions
                   resumeFile={resumeData.file}

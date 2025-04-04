@@ -17,6 +17,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { API_ENDPOINTS } from '@/config/api';
+import * as pdfjsLib from 'pdfjs-dist';
+import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
+import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
+
+// Set the worker source
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+export const extractTextFromPdf = async (file: File): Promise<string> => {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: TextItem | TextMarkedContent) => {
+          if ('str' in item) {
+            return item.str;
+          }
+          return '';
+        })
+        .join(' ');
+      fullText += pageText + ' ';
+    }
+    
+    return fullText.trim();
+  } catch (err) {
+    console.error('Error extracting text from PDF:', err);
+    throw new Error('Failed to extract text from PDF');
+  }
+};
 
 const IT_ROLES = [
   "Software Engineer",
@@ -40,7 +74,7 @@ interface AnalysisResult {
 }
 
 interface ResumeAnalysisProps {
-  onResumeUpload: (file: File) => void;
+  onResumeUpload: (file: File, text: string) => void;
   onAnalysisComplete: (analysis: AnalysisResult) => void;
 }
 
@@ -56,19 +90,24 @@ export const ResumeAnalysis: React.FC<ResumeAnalysisProps> = ({ onResumeUpload, 
   const [isUploadHovered, setIsUploadHovered] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type === 'application/pdf') {
+      console.log('File uploaded:', file.name);
       setResumeFile(file);
-      onResumeUpload(file);
       setError(null);
-      // Create URL for the PDF file
-      const url = URL.createObjectURL(file);
-      setPdfUrl(url);
+
+      try {
+        const extractedText = await extractTextFromPdf(file);
+        console.log('Text extracted from PDF:', extractedText.substring(0, 100) + '...');
+        onResumeUpload(file, extractedText);
+      } catch (err) {
+        console.error('Error extracting text from PDF:', err);
+        setError('Failed to extract text from PDF. Please try another file.');
+      }
     } else {
       setError('Please upload a PDF file');
       setResumeFile(null);
-      setPdfUrl(null);
     }
   };
 
@@ -87,8 +126,8 @@ export const ResumeAnalysis: React.FC<ResumeAnalysisProps> = ({ onResumeUpload, 
       return;
     }
 
-    if (!jobDescription) {
-      setError('Please provide a job description');
+    if (!jobDescription.trim()) {
+      setError('Please enter a job description');
       return;
     }
 
@@ -96,25 +135,26 @@ export const ResumeAnalysis: React.FC<ResumeAnalysisProps> = ({ onResumeUpload, 
     setError(null);
     setAnalysisResult(null);
 
-    const formData = new FormData();
-    formData.append('resume', resumeFile);
-    formData.append('job_description', jobDescription);
-
     try {
-      const response = await fetch('http://127.0.0.1:8002/api/analyze', {
+      const formData = new FormData();
+      formData.append('resume', resumeFile);
+      formData.append('job_description', jobDescription);
+
+      const response = await fetch(API_ENDPOINTS.analyze, {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze resume');
+        throw new Error(`Server responded with status ${response.status}`);
       }
 
       const result = await response.json();
       setAnalysisResult(result);
       onAnalysisComplete(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze resume');
+      console.error('Analysis error:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsAnalyzing(false);
     }
@@ -338,4 +378,4 @@ export const ResumeAnalysis: React.FC<ResumeAnalysisProps> = ({ onResumeUpload, 
       )}
     </div>
   );
-}; 
+};

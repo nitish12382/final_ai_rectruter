@@ -11,7 +11,8 @@ import Login from "./components/ui/login";
 import { ResumeAnalysisContainer } from "./components1/ResumeAnalysisContainer";
 import { ThemeProvider as CustomThemeProvider } from './context/ThemeContext';
 import CandidatePredictor from "./components/ui/CandidatePredictor";
-import { EmployeeResumeAnalysis } from './components1/EmployeeResumeAnalysis';
+import EmployeeResumeAnalysis from "./components1/EmployeeResumeAnalysis";
+import HRResumeAnalysis from "./components1/HRResumeAnalysis";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/resume-analysis" element={<ResumeAnalysisContainer />} />
               <Route path="/employee-resume-analysis" element={<EmployeeResumeAnalysis />} />
+              <Route path="/hr-resume-analysis" element={<HRResumeAnalysis />} />
               <Route path="/candidate-predictor" element={<CandidatePredictor />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

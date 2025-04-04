@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { API_ENDPOINTS } from '@/config/api';
+
+// Add this interface for the analysis type
+interface Analysis {
+  match_score?: number;
+  matching_skills?: string[];
+  missing_skills?: string[];
+  strengths?: string[];
+  areas_for_improvement?: string[];
+}
 
 interface ResumeQAProps {
   resumeFile: File | null;
@@ -11,53 +21,81 @@ interface ResumeQAProps {
   analysis: any;
 }
 
-const ResumeQA: React.FC<ResumeQAProps> = ({ resumeFile, resumeText, analysis }) => {
+export const ResumeQA: React.FC<ResumeQAProps> = ({ resumeFile, resumeText, analysis }) => {
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<string[]>([]);
+  const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  // Add useEffect to log props changes
+  useEffect(() => {
+    console.log('ResumeQA props updated:', {
+      hasResumeFile: !!resumeFile,
+      resumeTextLength: resumeText?.length || 0,
+      resumeTextPreview: resumeText?.substring(0, 100),
+      hasAnalysis: !!analysis,
+      resumeFileName: resumeFile?.name
+    });
+  }, [resumeFile, resumeText, analysis]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resumeFile) {
-      setError('Please upload a resume in the Resume Analysis section first.');
+    if (!question.trim()) return;
+
+    if (!resumeText) {
+      console.error('No resume text available:', {
+        hasResumeFile: !!resumeFile,
+        resumeTextLength: resumeText?.length || 0,
+        resumeTextPreview: resumeText?.substring(0, 100)
+      });
+      setError('No resume text available. Please upload a resume first.');
       return;
     }
 
     setLoading(true);
-    setError('');
-    setAnswer([]); // Reset answer before new request
+    setError(null);
+    setAnswer(null);
 
     try {
+      console.log('Sending QA request with resume text length:', resumeText.length);
       const formData = new FormData();
-      formData.append('resume', resumeFile);
-      formData.append('question', question);
+      formData.append('question', question.trim());
+      formData.append('resume_text', resumeText);
 
-      const response = await fetch('http://127.0.0.1:8002/api/qa', {
+      const response = await fetch(API_ENDPOINTS.qa, {
         method: 'POST',
-        body: formData,
+        body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get answer');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+        throw new Error(errorData.error || `Server responded with status ${response.status}`);
       }
 
       const data = await response.json();
-      // Ensure we're setting an array
+      console.log('QA response:', data);
+      
+      // Handle array response
       if (Array.isArray(data.answer)) {
+        setAnswer(data.answer.join('\n'));
+        setQuestion('');
+      } else if (typeof data.answer === 'string') {
         setAnswer(data.answer);
+        setQuestion('');
+      } else if (data.error) {
+        throw new Error(data.error);
       } else {
-        setAnswer([data.answer]);
+        throw new Error('No answer received from the server');
       }
     } catch (err) {
-      setError('Failed to get answer. Please try again.');
-      setAnswer([]); // Reset answer on error
+      console.error('QA error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to get answer. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!resumeFile) {
+  if (!resumeText) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
         <Alert variant="info" className="max-w-md">
@@ -97,16 +135,10 @@ const ResumeQA: React.FC<ResumeQAProps> = ({ resumeFile, resumeText, analysis })
             </Button>
           </form>
 
-          {answer && answer.length > 0 && (
+          {answer && (
             <div className="mt-6 space-y-2">
               <h3 className="font-semibold">Answer:</h3>
-              <ul className="list-disc pl-4 space-y-2">
-                {answer.map((point, index) => (
-                  <li key={index} className="text-muted-foreground">
-                    {typeof point === 'string' ? point.replace('-', '').trim() : String(point)}
-                  </li>
-                ))}
-              </ul>
+              <p className="text-muted-foreground whitespace-pre-wrap">{answer}</p>
             </div>
           )}
         </CardContent>
@@ -114,5 +146,3 @@ const ResumeQA: React.FC<ResumeQAProps> = ({ resumeFile, resumeText, analysis })
     </div>
   );
 };
-
-export default ResumeQA; 

@@ -570,7 +570,7 @@ const ResumeAnalyzer: React.FC = () => {
                       <FileText className="w-5 h-5 text-cyan-400" />
                       Analysis Results
                     </CardTitle>
-                    <Link to="/resume-analysis">
+                    <Link to="/hr-resume-analysis">
                       <Button
                         variant="outline"
                         className={`${
