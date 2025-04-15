@@ -49,6 +49,7 @@
         "@radix-ui/react-tooltip": "^1.1.4",
         "@tanstack/react-query": "^5.56.2",
         "@types/gsap": "^1.20.2",
+        "@zegocloud/zego-uikit-prebuilt": "^2.14.3-beta",
         "chart.js": "^4.4.8",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -64,8 +65,10 @@
         "next": "^15.2.4",
         "next-themes": "^0.3.0",
         "particles.js": "^2.0.0",
+        "pdf-lib": "^1.17.1",
         "pdf-parse": "^1.1.1",
-        "pdfjs-dist": "^3.11.174",
+        "pdf.js-extract": "^0.2.1",
+        "pdfjs-dist": "^2.16.105",
         "react": "^18.3.1",
         "react-chartjs-2": "^5.3.0",
         "react-day-picker": "^8.10.1",
@@ -103,6 +106,6 @@
         "ts-jest": "^29.3.1",
         "typescript": "^5.5.3",
         "typescript-eslint": "^8.0.1",
-        "vite": "^5.4.1"
+        "vite": "^6.2.5"
     }
 }

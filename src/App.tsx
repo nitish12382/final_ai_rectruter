@@ -13,6 +13,7 @@ import { ThemeProvider as CustomThemeProvider } from './context/ThemeContext';
 import CandidatePredictor from "./components/ui/CandidatePredictor";
 import EmployeeResumeAnalysis from "./components1/EmployeeResumeAnalysis";
 import HRResumeAnalysis from "./components1/HRResumeAnalysis";
+import VideoInterview from "./components1/VideoInterview";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,8 @@ const App = () => (
               <Route path="/employee-resume-analysis" element={<EmployeeResumeAnalysis />} />
               <Route path="/hr-resume-analysis" element={<HRResumeAnalysis />} />
               <Route path="/candidate-predictor" element={<CandidatePredictor />} />
+              <Route path="/interview/:roomid" element={<VideoInterview roomid={true} />} />
+              <Route path="/interview/:roomid" element={<VideoInterview isRoom={true} />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

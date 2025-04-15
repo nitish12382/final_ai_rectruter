@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, Upload, FileText, Settings, Send, Download, CheckCircle2, XCircle, ClipboardCheck } from 'lucide-react';
+import { Loader2, Upload, FileText, Settings, Send, Download, CheckCircle2, XCircle, ClipboardCheck, Video } from 'lucide-react';
 import { motion } from "framer-motion";
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '@/lib/firebase';
@@ -694,6 +694,13 @@ const ResumeAnalyzer: React.FC = () => {
                     >
                       <XCircle className="mr-2 h-4 w-4" />
                       Reject Others
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/interview/swarup')}
+                      className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-semibold"
+                    >
+                      <Video className="mr-2 h-4 w-4" />
+                      Start Video Interview
                     </Button>
                     <Button
                       onClick={handleDownloadCSV}

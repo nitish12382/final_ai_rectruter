@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import spacy
 import PyPDF2
@@ -280,9 +280,12 @@ Selected Candidates:
 Generate a professional acceptance email that:
 1. Congratulates the candidates
 2. Mentions their strong qualifications
-3. Includes next steps (interview scheduling)
+3. Includes interview details:
+   - Interview Link: https://ac05-150-107-16-112.ngrok-free.app/room/swarup
+   - Interview Timing: [Please select a suitable time slot]
 4. Maintains a professional tone
 5. Is personalized but not overly specific
+6. IMPORTANT: Only include the interview link once in the message
 
 Email:"""
         else:  # reject
@@ -302,7 +305,7 @@ Email:"""
         response = groq_client.chat.completions.create(
             model="gemma2-9b-it",
             messages=[
-                {"role": "system", "content": "You are a professional HR assistant. Generate clear, concise, and professional emails."},
+                {"role": "system", "content": "You are a professional HR assistant. Generate clear, concise, and professional emails. Make sure to include the interview link only once in the message."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -330,7 +333,22 @@ def process_action():
         action = request.form.get('action')
         custom_message = request.form.get('custom_message', '')
         indices_str = request.form.getlist('selected_resume')
-        selected_indices = [int(idx) for idx in indices_str] if indices_str else []
+        
+        # Validate required parameters
+        if not action:
+            return jsonify({"success": False, "error": "Action parameter is required"}), 400
+            
+        # Convert indices to integers safely
+        selected_indices = []
+        for idx in indices_str:
+            try:
+                selected_indices.append(int(idx))
+            except ValueError:
+                return jsonify({"success": False, "error": f"Invalid index value: {idx}"}), 400
+        
+        # Validate indices are within bounds
+        if results and any(idx >= len(results) for idx in selected_indices):
+            return jsonify({"success": False, "error": "One or more selected indices are out of range"}), 400
         
         if action == 'reject':
             all_indices = list(range(len(results)))
@@ -339,7 +357,7 @@ def process_action():
             target_indices = selected_indices
 
         if not target_indices:
-            return jsonify({"success": False, "msg": "No resumes targeted for " + action + " action."})
+            return jsonify({"success": False, "error": f"No resumes targeted for {action} action"}), 400
         
         final_msg = ""
         if action == 'accept':
@@ -349,14 +367,17 @@ def process_action():
         final_msg += custom_message + "\n"
         
         for idx in target_indices:
-            resume = results[idx]
-            name = resume["names"][0] if resume["names"] else "N/A"
-            email = resume["emails"][0] if resume["emails"] else "N/A"
-            final_msg += f"\nCandidate: {name}, Email: {email}"
+            if idx < len(results):
+                resume = results[idx]
+                name = resume["names"][0] if resume["names"] else "N/A"
+                email = resume["emails"][0] if resume["emails"] else "N/A"
+                final_msg += f"\nCandidate: {name}, Email: {email}"
         
         return jsonify({"success": True, "msg": final_msg})
     except Exception as e:
         print(f"Error in /api/process-action: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/download-csv')
@@ -596,6 +617,48 @@ def qa():
     except Exception as e:
         print(f"Error in qa endpoint: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/interview/<roomid>')
+def interview_room(roomid):
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Video Interview</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt@1.0.0/zego-uikit-prebuilt.js"></script>
+        <style>
+            #root {
+                width: 100vw;
+                height: 100vh;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script>
+            const roomID = window.location.pathname.split('/').pop();
+            const zp = ZegoUIKitPrebuilt.create({
+                appID: 2128937685,
+                serverSecret: "cdbd6af0aaa52e5a222272f8553195c5",
+                roomID: roomID,
+                userID: 'user_' + Math.floor(Math.random() * 10000),
+                userName: 'User_' + Math.floor(Math.random() * 10000),
+                container: document.querySelector("#root"),
+                scenario: {
+                    mode: ZegoUIKitPrebuilt.OneONoneCall,
+                },
+            });
+        </script>
+    </body>
+    </html>
+    """
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000) 

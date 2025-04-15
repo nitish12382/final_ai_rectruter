@@ -19,23 +19,24 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { API_ENDPOINTS } from '@/config/api';
 import * as pdfjsLib from 'pdfjs-dist';
-import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
-import { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api';
 
-// Set the worker source
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export const extractTextFromPdf = async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      useWorker: false // Disable worker for simpler operation
+    }).promise;
     
+    let fullText = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       const pageText = textContent.items
-        .map((item: TextItem | TextMarkedContent) => {
+        .map((item: any) => {
           if ('str' in item) {
             return item.str;
           }
